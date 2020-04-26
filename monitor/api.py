@@ -17,10 +17,21 @@
 __all__ = ("Log", )
 
 
+from .logger import getLogger
 from .ce_adapter import Interface, CEAdapterError, NotFound
 import falcon
-import time
 import datetime
+
+
+logger = getLogger(__name__.split(".", 1)[-1])
+
+
+def reqDebugLog(req):
+    logger.debug("method='{}' path='{}' content_type='{}'".format(req.method, req.path, req.content_type))
+
+
+def reqErrorLog(req, ex):
+    logger.error("method='{}' path='{}' - {}".format(req.method, req.path, ex))
 
 
 class Log:
@@ -31,6 +42,7 @@ class Log:
         self.__ce_adapter = ce_adapter
 
     def on_get(self, req: falcon.request.Request, resp: falcon.response.Response, name):
+        reqDebugLog(req)
         try:
             if req.params:
                 params = req.params.copy()
@@ -49,9 +61,15 @@ class Log:
                 resp.body = self.__ce_adapter.getRelative(name)
             resp.status = falcon.HTTP_200
             resp.content_type = falcon.MEDIA_TEXT
-        except (TypeError, ValueError):
+        except TypeError as ex:
             resp.status = falcon.HTTP_400
-        except NotFound:
+            reqErrorLog(req, ex)
+        except ValueError as ex:
+            resp.status = falcon.HTTP_400
+            reqErrorLog(req, ex)
+        except NotFound as ex:
             resp.status = falcon.HTTP_404
-        except CEAdapterError:
+            reqErrorLog(req, ex)
+        except Exception as ex:
             resp.status = falcon.HTTP_500
+            reqErrorLog(req, ex)
