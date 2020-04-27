@@ -59,8 +59,8 @@ class Log:
                     raise TypeError("unknown arguments")
             else:
                 resp.body = self.__ce_adapter.getRelative(name)
-            resp.status = falcon.HTTP_200
             resp.content_type = falcon.MEDIA_TEXT
+            resp.status = falcon.HTTP_200
         except TypeError as ex:
             resp.status = falcon.HTTP_400
             reqErrorLog(req, ex)
